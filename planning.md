@@ -67,14 +67,23 @@ The literal words sound calm, but the intent is clearly bearish. **Decision rule
  
 ### Data Collection Plan
  
-**Source:** Public posts and top-level comments from r/investing, collected manually by browsing the Hot, Top (past month), and New feeds. No authentication required; all content is publicly accessible.
+**Source:** Public posts and top-level comments from r/investing, collected manually by browsing the Hot, Top (past month), and New feeds.
  
-**Volume target:** 70–75 examples per label (210–225 total), aiming for a roughly balanced distribution. The spec warns against any single label exceeding 70% of the dataset; targeting ~33% per label keeps the model from defaulting to a majority class.
+**Volume target:** 70–75 examples per label (210–225 total), aiming for a roughly balanced distribution. A target of ~33% per label keeps the model from defaulting to a majority class.
  
 **Collection strategy:**
+
+| Feed | Posts to visit | Examples per post | Target examples |
+|---|---|---|---|
+| Hot | ~27 | 1 post + 1 comments = 2 | ~80 |
+| Top (past month) | ~23 | 1 post + 1 comments = 2 | ~70 |
+| New | ~20 | 1 post + 1 comments = 2 | ~60 |
+
+- Skip any post under 15 words.
 - Collect posts and comments together, since both appear in real community feeds and the model should generalize across both formats.
 - Prioritize variety over recency: include posts about different asset classes (equities, bonds, commodities, real estate), time horizons (day trading reactions vs. long-term theses), and post lengths (short reactions and long-form arguments).
 - Save raw text and label in a CSV with a `notes` column for difficult cases.
+
 **Imbalance contingency:** After labeling the first 100 examples, check the distribution. If any label is below 25 examples (< 25%), actively seek examples of that label specifically — filter by post content or search for relevant keywords. Neutral posts tend to be the hardest to find in adequate volume on an opinion-heavy forum, so I may need to deliberately target question posts and news recap threads to reach the target count.
  
 ---
@@ -97,10 +106,10 @@ The literal words sound calm, but the intent is clearly bearish. **Decision rule
  
 A classifier is genuinely useful for a community sentiment tool if it meets all three of the following thresholds on the held-out test set:
  
-1. **Overall accuracy ≥ 75%** — meaningfully above the 33% random baseline and the ~50% expected from a two-class naive guesser.
-2. **Per-class F1 ≥ 0.65 for all three labels** — no single label can be effectively ignored by the model. A label with F1 below 0.65 means the model is failing that class at a rate that would frustrate users who rely on it.
+1. **Overall accuracy ≥ 75%**: This is significantly above the 33% random baseline
+2. **Per-class F1 ≥ 0.65 for all three labels**: No single label can be effectively ignored by the model. A label with F1 below 0.65 means the model is failing and unreliable.
 3. **Fine-tuned model outperforms zero-shot baseline on macro F1** — if fine-tuning on 200 labeled examples does not beat a general-purpose LLM with no task-specific training, the labeling effort did not produce a learnable signal and the labels or data quality need revision.
-These thresholds are set to be achievable on a 200-example dataset while being high enough to be meaningful. A model that hits 75% accuracy with balanced per-class F1 is making correct calls three out of four times across all sentiment types — sufficient for an aggregate sentiment dashboard, though not reliable enough for any individual high-stakes decision.
+These thresholds are set to be achievable on a 200-example dataset while being high enough to be meaningful. A model that hits 75% accuracy with balanced per-class F1 is making correct calls three out of four times across all sentiment types — sufficient for an aggregate sentiment dashboard, though not reliable enough for any high-stakes decision.
  
 If the model falls short: investigate whether the underperforming label has too few training examples, whether the annotation was inconsistent for that class, or whether the label boundary itself is too ambiguous to learn from text alone.
  
@@ -110,11 +119,11 @@ If the model falls short: investigate whether the underperforming label has too 
  
 **1. Label stress-testing (before annotation)**
  
-Before annotating any examples, I will give Claude my three label definitions and both edge case rules and ask it to generate 10 posts that sit at the boundary between two labels — specifically targeting the `neutral`/`bearish` boundary (where a factual-sounding post might actually be making a bearish argument) and the `bullish`/`neutral` boundary (where optimism might be hedged enough to read as balanced). If Claude produces posts I cannot cleanly classify using my existing decision rules, that is a signal to tighten the definitions before committing to 200 annotations.
+Before annotating any examples, I will give Claude my three label definitions and both edge case rules and ask it to generate 10 posts that sit at the boundary between two labels, specifically targeting the neutral/bearish boundary (where a factual-sounding post might actually be making a bearish argument) and the bullish/neutral boundary (where optimism might be hedged enough to read as balanced). If Claude produces posts I cannot cleanly classify using my existing decision rules, that is a signal to tighten the definitions before committing to 200 annotations.
  
 **2. Annotation assistance (during data collection)**
  
-I will use Claude to pre-label batches of 20–30 posts at a time by providing it the label definitions and the raw post text. For each batch, I will review and correct every pre-assigned label independently — I will not accept any pre-label without reading the post myself. Pre-labeled examples will be flagged in a `prelabeled` column in the CSV (value: `yes`) so the annotation assistance is fully disclosed in the AI usage section of the README.
+I will use Claude to pre-label batches of 20–30 posts at a time by providing it the label definitions and the raw post text. For each batch, I will review and correct every pre-assigned label independently. I will not accept any pre-label without reading the post myself. Pre-labeled examples will be flagged in a prelabeled column in the CSV (value: yes) so the annotation assistance is fully disclosed in the AI usage section of the README.
  
 **3. Failure analysis (after fine-tuning)**
  
