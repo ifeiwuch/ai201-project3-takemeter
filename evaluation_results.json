@@ -1,0 +1,12 @@
+{
+  "baseline_accuracy": 0.8667,
+  "finetuned_accuracy": 0.4333,
+  "improvement": -0.4333,
+  "test_set_size": 30,
+  "label_map": {
+    "neutral": 0,
+    "bearish": 1,
+    "bullish": 2
+  },
+  "model": "ProsusAI/finbert"
+}
